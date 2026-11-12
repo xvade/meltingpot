@@ -40,6 +40,9 @@ OBSERVATION = immutabledict.immutabledict({
     'POSITION': dm_env.specs.Array(shape=(2,), dtype=np.int32, name='POSITION'),
     'ORIENTATION': dm_env.specs.Array(
         shape=(), dtype=np.int32, name='ORIENTATION'),
+    'BINARY_COMMS': dm_env.specs.Array(
+      shape=(), dtype=np.int32, name='BINARY_COMMS'
+    ),
 })
 _ACTION = dm_env.specs.DiscreteArray(
     num_values=1, dtype=np.int64, name='action')
@@ -144,6 +147,16 @@ def interaction_inventories(
     name: optional name for the spec.
   """
   return float64(2, num_resources, name=name)
+
+
+def binary_communication(
+    name: Optional[str] = 'BINARY_COMMS') -> dm_env.specs.Array:
+  """Returns the spec for a BINARY_COMMS observation.
+
+  Args:
+    name: optional name for the spec.
+  """
+  return OBSERVATION['BINARY_COMMS']
 
 
 def timestep(

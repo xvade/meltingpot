@@ -118,5 +118,6 @@ SUBSTRATES: Set[str] = frozenset({
     'territory__inside_out',
     'territory__open',
     'territory__rooms',
+    'communication.toy',
     # keep-sorted end
 })
