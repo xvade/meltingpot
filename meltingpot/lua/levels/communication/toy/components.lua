@@ -84,87 +84,87 @@ function RewardWhenActiveAndEnd:onEnter(enteringGameObject, contactName)
 end
 
 
-local BinaryCommunicationManager = class.Class(component.Component)
+-- local BinaryCommunicationManager = class.Class(component.Component)
 
-function BinaryCommunicationManager:__init__(kwargs)
-    kwargs = args.parse(kwargs, {
-        {'name', args.default('BinaryCommunicationManager')},
-        {'loudState', args.default('loud')},
-        {'quietState', args.default('quiet')},
-    })
-    BinaryCommunicationManager.Base.__init__(self, kwargs)
-    self._config.loudState = kwargs.loudState
-    self._config.quietState = kwargs.quietState
-end
+-- function BinaryCommunicationManager:__init__(kwargs)
+--     kwargs = args.parse(kwargs, {
+--         {'name', args.default('BinaryCommunicationManager')},
+--         {'loudState', args.default('loud')},
+--         {'quietState', args.default('quiet')},
+--     })
+--     BinaryCommunicationManager.Base.__init__(self, kwargs)
+--     self._config.loudState = kwargs.loudState
+--     self._config.quietState = kwargs.quietState
+-- end
 
-function BinaryCommunicationManager:getLoudState()
-    return self._config.loudState
-end
+-- function BinaryCommunicationManager:getLoudState()
+--     return self._config.loudState
+-- end
 
-function BinaryCommunicationManager:postStart()
-    local simulation = self.gameObject.simulation
-    self._config.avatars = simulation:getAllGameObjectsWithComponent("Avatar")
-end
+-- function BinaryCommunicationManager:postStart()
+--     local simulation = self.gameObject.simulation
+--     self._config.avatars = simulation:getAllGameObjectsWithComponent("Avatar")
+-- end
     
 
-function BinaryCommunicationManager:registerUpdaters(updaterRegistry)
-    local updateFn = function()
-        for _, avatar in ipairs(self._config.avatars) do
-            local playerVolatileVariables = (
-            avatar:getComponent('Avatar'):getVolatileData())
-            local actions = playerVolatileVariables.actions
-            if actions["binaryComms"] == 1 then
-                self.gameObject:setState(self._config.loudState)
-                return
-            end
-        end
-        self.gameObject:setState(self._config.quietState)
-    end
-    updaterRegistry:registerUpdater{
-        updateFn = updateFn,
-        priority = 0,
-    }
-end 
+-- function BinaryCommunicationManager:registerUpdaters(updaterRegistry)
+--     local updateFn = function()
+--         for _, avatar in ipairs(self._config.avatars) do
+--             local playerVolatileVariables = (
+--             avatar:getComponent('Avatar'):getVolatileData())
+--             local actions = playerVolatileVariables.actions
+--             if actions["binaryComms"] == 1 then
+--                 self.gameObject:setState(self._config.loudState)
+--                 return
+--             end
+--         end
+--         self.gameObject:setState(self._config.quietState)
+--     end
+--     updaterRegistry:registerUpdater{
+--         updateFn = updateFn,
+--         priority = 0,
+--     }
+-- end 
 
 
-local BinaryCommunicationObservation = class.Class(component.Component)
+-- local BinaryCommunicationObservation = class.Class(component.Component)
 
-function BinaryCommunicationObservation:__init__(kwargs)
-  kwargs = args.parse(kwargs, {
-      {'name', args.default('BinaryCommunicationObservation')},
-      {'binaryCommunicationManagerName', args.stringType},
-  })
-  BinaryCommunicationObservation.Base.__init__(self, kwargs)
+-- function BinaryCommunicationObservation:__init__(kwargs)
+--   kwargs = args.parse(kwargs, {
+--       {'name', args.default('BinaryCommunicationObservation')},
+--       {'binaryCommunicationManagerName', args.stringType},
+--   })
+--   BinaryCommunicationObservation.Base.__init__(self, kwargs)
 
-  self._config.binaryCommunicationManagerName = kwargs.binaryCommunicationManagerName
-end
+--   self._config.binaryCommunicationManagerName = kwargs.binaryCommunicationManagerName
+-- end
 
-function BinaryCommunicationObservation:addObservations(tileSet, world, observations)
-  local playerIndex = self.gameObject:getComponent('Avatar'):getIndex()
+-- function BinaryCommunicationObservation:addObservations(tileSet, world, observations)
+--   local playerIndex = self.gameObject:getComponent('Avatar'):getIndex()
 
-  observations[#observations + 1] = {
-      name = tostring(playerIndex) .. '.BINARY_COMMS',
-      type = 'Int32s',
-      shape = {},
-      func = function(grid)
-           local simulation = self.gameObject.simulation
-           local binaryCommunicationManager = simulation:getGameObjectsByName(self._config.binaryCommunicationManagerName)[1]
-           local binaryCommunicationManagerComponent = binaryCommunicationManager:getComponent("BinaryCommunicationManager")
-           if binaryCommunicationManager:getState() == binaryCommunicationManagerComponent:getLoudState() then
-               return 1
-            else
-                return 0
-            end
-      end
-  }
-end
+--   observations[#observations + 1] = {
+--       name = tostring(playerIndex) .. '.BINARY_COMMS',
+--       type = 'Int32s',
+--       shape = {},
+--       func = function(grid)
+--            local simulation = self.gameObject.simulation
+--            local binaryCommunicationManager = simulation:getGameObjectsByName(self._config.binaryCommunicationManagerName)[1]
+--            local binaryCommunicationManagerComponent = binaryCommunicationManager:getComponent("BinaryCommunicationManager")
+--            if binaryCommunicationManager:getState() == binaryCommunicationManagerComponent:getLoudState() then
+--                return 1
+--             else
+--                 return 0
+--             end
+--       end
+--   }
+-- end
 
 
 local allComponents = {
     DisappearingApple = DisappearingApple,
     RewardWhenActiveAndEnd = RewardWhenActiveAndEnd,
-    BinaryCommunicationManager = BinaryCommunicationManager,
-    BinaryCommunicationObservation = BinaryCommunicationObservation,
+    -- BinaryCommunicationManager = BinaryCommunicationManager,
+    -- BinaryCommunicationObservation = BinaryCommunicationObservation,
 }
 
 
