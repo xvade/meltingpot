@@ -107,6 +107,12 @@ function BinaryCommunicationObservation:addObservations(tileSet, world, observat
   }
 end
 
+-- TODO: Implement proximity chat
+-- TODO: Implement DMs
+-- TODO: Do I need something more efficient than O(n^2)?
+-- TODO: Implement deliberate message passing
+-- TODO: Implement memmory (maybe just self DMs?)
+
 
 local allComponents = {
     BinaryCommunicationManager = BinaryCommunicationManager,
