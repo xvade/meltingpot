@@ -37,16 +37,20 @@ local BinaryCommunicationManager = class.Class(component.Component)
 function BinaryCommunicationManager:__init__(kwargs)
     kwargs = args.parse(kwargs, {
         {'name', args.default('BinaryCommunicationManager')},
-        {'loudState', args.default('loud')},
-        {'quietState', args.default('quiet')},
     })
     BinaryCommunicationManager.Base.__init__(self, kwargs)
-    self._config.loudState = kwargs.loudState
-    self._config.quietState = kwargs.quietState
 end
 
-function BinaryCommunicationManager:getLoudState()
-    return self._config.loudState
+function BinaryCommunicationManager:setLoud()
+    self._variables.loud = true
+end
+
+function BinaryCommunicationManager:unsetLoud()
+    self._variables.loud = false
+end
+
+function BinaryCommunicationManager:isLoud()
+    return self._variables.loud
 end
 
 function BinaryCommunicationManager:postStart()
@@ -62,11 +66,11 @@ function BinaryCommunicationManager:registerUpdaters(updaterRegistry)
             avatar:getComponent('Avatar'):getVolatileData())
             local actions = playerVolatileVariables.actions
             if actions["binaryComms"] == 1 then
-                self.gameObject:setState(self._config.loudState)
+                self:setLoud()
                 return
             end
         end
-        self.gameObject:setState(self._config.quietState)
+        self:unsetLoud()
     end
     updaterRegistry:registerUpdater{
         updateFn = updateFn,
@@ -80,11 +84,8 @@ local BinaryCommunicationObservation = class.Class(component.Component)
 function BinaryCommunicationObservation:__init__(kwargs)
   kwargs = args.parse(kwargs, {
       {'name', args.default('BinaryCommunicationObservation')},
-      {'binaryCommunicationManagerName', args.stringType},
   })
   BinaryCommunicationObservation.Base.__init__(self, kwargs)
-
-  self._config.binaryCommunicationManagerName = kwargs.binaryCommunicationManagerName
 end
 
 function BinaryCommunicationObservation:addObservations(tileSet, world, observations)
@@ -96,9 +97,9 @@ function BinaryCommunicationObservation:addObservations(tileSet, world, observat
       shape = {},
       func = function(grid)
            local simulation = self.gameObject.simulation
-           local binaryCommunicationManager = simulation:getGameObjectsByName(self._config.binaryCommunicationManagerName)[1]
+           local binaryCommunicationManager = simulation:getAllGameObjectsWithComponent("BinaryCommunicationManager")[1]
            local binaryCommunicationManagerComponent = binaryCommunicationManager:getComponent("BinaryCommunicationManager")
-           if binaryCommunicationManager:getState() == binaryCommunicationManagerComponent:getLoudState() then
+           if binaryCommunicationManagerComponent:isLoud() then
                return 1
            else
                 return 0

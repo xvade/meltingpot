@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Configuration for our toy communication example. Both agents have access to
-binary cheap talk communication. One spawns in a room that either contains an
+"""Configuration for our toy communication example. In this base case, no agent
+has any cheap talk communication. One spawns in a room that either contains an
 apple or doesn't (50/50 chance), the other spawns in a room with a green square
 and a blue square. The green square is correct if the apple exists, otherwise
 the blue square is correct. Stepping on either square ends the scenario.
@@ -240,14 +240,13 @@ WALL = {
 # Primitive action components.
 # pylint: disable=bad-whitespace
 # pyformat: disable
-NOOP       = {"move": 0, "turn":  0, "binaryComms": 0}
-FORWARD    = {"move": 1, "turn":  0, "binaryComms": 0}
-STEP_RIGHT = {"move": 2, "turn":  0, "binaryComms": 0}
-BACKWARD   = {"move": 3, "turn":  0, "binaryComms": 0}
-STEP_LEFT  = {"move": 4, "turn":  0, "binaryComms": 0}
-TURN_LEFT  = {"move": 0, "turn": -1, "binaryComms": 0}
-TURN_RIGHT = {"move": 0, "turn":  1, "binaryComms": 0}
-COMMUNICATE= {"move": 0, "turn":  0, "binaryComms": 1}
+NOOP       = {"move": 0, "turn":  0}
+FORWARD    = {"move": 1, "turn":  0}
+STEP_RIGHT = {"move": 2, "turn":  0}
+BACKWARD   = {"move": 3, "turn":  0}
+STEP_LEFT  = {"move": 4, "turn":  0}
+TURN_LEFT  = {"move": 0, "turn": -1}
+TURN_RIGHT = {"move": 0, "turn":  1}
 # pyformat: enablebinaryComms# pylint: enable=bad-whitespace
 
 ACTION_SET = (
@@ -258,7 +257,6 @@ ACTION_SET = (
     STEP_RIGHT,
     TURN_LEFT,
     TURN_RIGHT,
-    COMMUNICATE,
 )
 
 TARGET_SPRITE_SELF = {
@@ -268,8 +266,7 @@ TARGET_SPRITE_SELF = {
     "noRotate": True,
 }
 
-
-def create_scene():
+def parameterized_create_scene(comm_components=[]):
   """Creates the scene."""
   scene = {
       "name": "scene",
@@ -288,40 +285,11 @@ def create_scene():
           },
       ]
   }
-
+  scene["components"].extend(comm_components)
   return scene
 
-def create_binary_communication_manager():
-    """Creates the binary communication manager."""
-    quiet_state_name = "quiet"
-    loud_state_name = "loud"
-    binary_communication_manager = {
-        "name": "binary_communication_manager",
-        "components": [
-            {
-                "component": "StateManager",
-                "kwargs": {
-                    "initialState": quiet_state_name,
-                    "stateConfigs": [
-                        {"state": quiet_state_name},
-                        {"state": loud_state_name}
-                    ]
-                }
-            },
-            {
-                "component": "Transform",
-            },
-            {
-                "component": "BinaryCommunicationManager",
-                "kwargs": {
-                    "quietState": quiet_state_name,
-                    "loudState": loud_state_name
-                }
-            }
-        ]
-    }
-    return binary_communication_manager
-
+def create_scene():
+    return parameterized_create_scene()
 
 def create_prefabs():
   """Returns a dictionary mapping names to template game objects."""
@@ -337,98 +305,97 @@ def create_prefabs():
 
 def create_avatar_object(player_idx: int,
                          target_sprite_self: Dict[str, Any],
-                         spawn_group: str) -> Dict[str, Any]:
-  """Create an avatar object that always sees itself as blue."""
-  # Lua is 1-indexed.
-  lua_index = player_idx + 1
+                         spawn_group: str,
+                         comm_action_spec: Dict[str, Any],
+                         comm_components: List[Dict]) -> Dict[str, Any]:
+    """Create an avatar object that always sees itself as blue."""
+    # Lua is 1-indexed.
+    lua_index = player_idx + 1
 
-  # Setup the self vs other sprite mapping.
-  source_sprite_self = "Avatar" + str(lua_index)
-  custom_sprite_map = {source_sprite_self: target_sprite_self["name"]}
+    # Setup the self vs other sprite mapping.
+    source_sprite_self = "Avatar" + str(lua_index)
+    custom_sprite_map = {source_sprite_self: target_sprite_self["name"]}
 
-  live_state_name = "player{}".format(lua_index)
-  avatar_object = {
-      "name": "avatar",
-      "components": [
-          {
-              "component": "StateManager",
-              "kwargs": {
-                  "initialState": live_state_name,
-                  "stateConfigs": [
-                      {"state": live_state_name,
-                       "layer": "upperPhysical",
-                       "sprite": source_sprite_self,
-                       "contact": "avatar",
-                       "groups": ["players"]},
+    live_state_name = "player{}".format(lua_index)
+    avatar_component = {
+        "component": "Avatar",
+        "kwargs": {
+            "index": lua_index,
+            "aliveState": live_state_name,
+            "waitState": "playerWait",
+            "speed": 1.0,
+            "spawnGroup": spawn_group,
+            "actionOrder": ["move", "turn"] + list(comm_action_spec),
+            "actionSpec": {
+                "move": {"default": 0, "min": 0, "max": len(_COMPASS)},
+                "turn": {"default": 0, "min": -1, "max": 1},
+            },
+            "view": {
+                "left": 5,
+                "right": 5,
+                "forward": 5,
+                "backward": 5,
+                "centered": True,
+            },
+        },
+    }
 
-                      {"state": "playerWait",
-                       "groups": ["playerWaits"]},
-                  ]
-              }
-          },
-          {
-              "component": "Transform",
-          },
-          {
-              "component": "Appearance",
-              "kwargs": {
-                  "renderMode": "ascii_shape",
-                  "spriteNames": [source_sprite_self],
-                  "spriteShapes": [shapes.CUTE_AVATAR],
-                  "palettes": [shapes.get_palette(
-                      colors.human_readable[player_idx])],
-                  "noRotates": [True]
-              }
-          },
-          {
-              "component": "AdditionalSprites",
-              "kwargs": {
-                  "renderMode": "ascii_shape",
-                  "customSpriteNames": [target_sprite_self["name"]],
-                  "customSpriteShapes": [target_sprite_self["shape"]],
-                  "customPalettes": [target_sprite_self["palette"]],
-                  "customNoRotates": [target_sprite_self["noRotate"]],
-              }
-          },
-          {
-              "component": "Avatar",
-              "kwargs": {
-                  "index": lua_index,
-                  "aliveState": live_state_name,
-                  "waitState": "playerWait",
-                  "speed": 1.0,
-                  "spawnGroup": spawn_group,
-                  "actionOrder": ["move", "turn", "binaryComms"],
-                  "actionSpec": {
-                      "move": {"default": 0, "min": 0, "max": len(_COMPASS)},
-                      "turn": {"default": 0, "min": -1, "max": 1},
-                      "binaryComms": {"default": 0, "min": 0, "max": 1},
-                  },
-                  "view": {
-                      "left": 5,
-                      "right": 5,
-                      "forward": 5,
-                      "backward": 5,
-                      "centered": True
-                  },
-                  # "spriteMap": custom_sprite_map,
-              }
-          },
-          {
-              "component": "BinaryCommunicationObservation",
-              "kwargs": {
-                  "binaryCommunicationManagerName": "binary_communication_manager",
-              }
-          },
-      ]
-  }
-  if _ENABLE_DEBUG_OBSERVATIONS:
-    avatar_object["components"].append({
-        "component": "LocationObserver",
-        "kwargs": {"objectIsAvatar": True, "alsoReportOrientation": True},
-    })
+    avatar_component["kwargs"]["actionSpec"].update(comm_action_spec)
+    avatar_object = {
+        "name": "avatar",
+        "components": [
+            {
+                "component": "StateManager",
+                "kwargs": {
+                    "initialState": live_state_name,
+                    "stateConfigs": [
+                        {
+                            "state": live_state_name,
+                            "layer": "upperPhysical",
+                            "sprite": source_sprite_self,
+                            "contact": "avatar",
+                            "groups": ["players"],
+                        },
+                        {"state": "playerWait", "groups": ["playerWaits"]},
+                    ],
+                },
+            },
+            {
+                "component": "Transform",
+            },
+            {
+                "component": "Appearance",
+                "kwargs": {
+                    "renderMode": "ascii_shape",
+                    "spriteNames": [source_sprite_self],
+                    "spriteShapes": [shapes.CUTE_AVATAR],
+                    "palettes": [shapes.get_palette(colors.human_readable[player_idx])],
+                    "noRotates": [True],
+                },
+            },
+            {
+                "component": "AdditionalSprites",
+                "kwargs": {
+                    "renderMode": "ascii_shape",
+                    "customSpriteNames": [target_sprite_self["name"]],
+                    "customSpriteShapes": [target_sprite_self["shape"]],
+                    "customPalettes": [target_sprite_self["palette"]],
+                    "customNoRotates": [target_sprite_self["noRotate"]],
+                },
+            },
+            avatar_component,
+        ],
+    }
+    avatar_object["components"].extend(comm_components)
+    if _ENABLE_DEBUG_OBSERVATIONS:
+        avatar_object["components"].append(
+            {
+                "component": "LocationObserver",
+                "kwargs": {"objectIsAvatar": True, "alsoReportOrientation": True},
+            }
+        )
 
-  return avatar_object
+    return avatar_object
 
 
 def create_avatar_objects(num_players):
@@ -438,7 +405,7 @@ def create_avatar_objects(num_players):
     spawn_group = "spawnPoints"
     game_object = create_avatar_object(player_idx,
                                        TARGET_SPRITE_SELF,
-                                       spawn_group=spawn_group)
+                                       spawn_group, {}, {})
     avatar_objects.append(game_object)
 
   return avatar_objects
@@ -447,33 +414,33 @@ def create_avatar_objects(num_players):
 def create_game_objects(num_players):
     """Returns list of game objects including the players."""
     objects = create_avatar_objects(num_players)
-    objects.append(create_binary_communication_manager())
     return objects
 
 
-def get_config():
-  """Default configuration for training on the commons_harvest level."""
+def parameterized_get_config(action_set, comms_observation_names, comms_observation_spec):
   config = config_dict.ConfigDict()
 
   # Action set configuration.
-  config.action_set = ACTION_SET
+  config.action_set = list(action_set)
   # Observation format configuration.
   config.individual_observation_names = [
       "RGB",
-      "BINARY_COMMS",
   ]
+  config.individual_observation_names.extend(comms_observation_names)
+
   config.global_observation_names = [
       "WORLD.RGB",
   ]
 
   # The specs of the environment (from a single-agent perspective).
-  config.action_spec = specs.action(len(ACTION_SET))
-  config.timestep_spec = specs.timestep({
+  config.action_spec = specs.action(len(config.action_set))
+  observation_spec = {
       "RGB": specs.OBSERVATION["RGB"],
-      "BINARY_COMMS": specs.binary_communication(),
       # Debug only (do not use the following observations in policies).
       "WORLD.RGB": specs.rgb(48, 160),
-  })
+  }
+  observation_spec.update(comms_observation_spec)
+  config.timestep_spec = specs.timestep(observation_spec)
 
   # The roles assigned to each player.
   config.valid_roles = frozenset({"default"})
@@ -481,29 +448,37 @@ def get_config():
 
   return config
 
+def get_config():
+    """Default configuration for training on the toy level."""
+    return parameterized_get_config(ACTION_SET, [], {})
+
+
+def parameterized_build(roles: Sequence[str], create_game_objects, create_scene):
+    num_players = len(roles) # This should be 2.
+    # Build the rest of the substrate definition.
+    substrate_definition = dict(
+        levelName="toy",
+        levelDirectory="meltingpot/lua/levels/communication",
+        numPlayers=num_players,
+        # Define upper bound of episode length since episodes end stochastically.
+        maxEpisodeLengthFrames=100,
+        spriteSize=8,
+        topology="BOUNDED",  # Choose from ["BOUNDED", "TORUS"],
+        simulation={
+            "map": ASCII_MAP,
+            "gameObjects": create_game_objects(num_players),
+            "prefabs": create_prefabs(),
+            "charPrefabMap": CHAR_PREFAB_MAP,
+            "scene": create_scene(),
+        },
+    )
+    return substrate_definition
+
 
 def build(
     roles: Sequence[str],
     config: config_dict.ConfigDict,
 ) -> Mapping[str, Any]:
-  """Build substrate definition given player roles."""
-  del config
-  num_players = len(roles) # This should be 2.
-  # Build the rest of the substrate definition.
-  substrate_definition = dict(
-      levelName="toy",
-      levelDirectory="meltingpot/lua/levels/communication",
-      numPlayers=num_players,
-      # Define upper bound of episode length since episodes end stochastically.
-      maxEpisodeLengthFrames=100,
-      spriteSize=8,
-      topology="BOUNDED",  # Choose from ["BOUNDED", "TORUS"],
-      simulation={
-          "map": ASCII_MAP,
-          "gameObjects": create_game_objects(num_players),
-          "prefabs": create_prefabs(),
-          "charPrefabMap": CHAR_PREFAB_MAP,
-          "scene": create_scene(),
-      },
-  )
-  return substrate_definition
+    """Build substrate definition given player roles."""
+    del config
+    return parameterized_build(roles, create_game_objects, create_scene)
