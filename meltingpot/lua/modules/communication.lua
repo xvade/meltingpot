@@ -129,11 +129,11 @@ function OpenChannelSender:postStart()
     local simulation = self.gameObject.simulation
     local avatarComp = self.gameObject:getComponent("Avatar")
     self._config.recipient = simulation:getAvatarFromIndex(self._config.recipientIndex)
-    self._config.reciever = recipient:getComponent("OpenChannelReciever" .. avatarComp:getIndex()) -- Assumes uniqueness of the componenet
+    self._config.reciever = self._config.recipient:getComponent("OpenChannelReciever" .. avatarComp:getIndex()) -- Assumes uniqueness of the componenet
 end
 
 
-function OpenChannelSender:registerUpdaters()
+function OpenChannelSender:registerUpdaters(updaterRegistry)
     local avatarComp = self.gameObject:getComponent("Avatar")
     local updateFn = function()
         local playerVolatileVariables = avatarComp:getVolatileData()
@@ -177,7 +177,7 @@ function OpenChannelReciever:recieveMessage(message)
 end
 
 
-function OpenChannelReciever:registerUpdaters()
+function OpenChannelReciever:registerUpdaters(updaterRegistry)
     updaterRegistry:registerUpdaters{
         updateFn = function() self._variables.lastMessage = self._config.silentMessage end,
         priority = 11,
@@ -199,8 +199,7 @@ function OpenChannelReciever:addObservations(tileSet, world, observations)
 end
 
 -- TODO: Implement proximity chat
--- TODO: Implement DMs
--- TODO: Do I need something more efficient than O(n^2)?
+-- TODO: Test DMs
 -- TODO: Implement deliberate message passing
 -- TODO: Implement memmory (maybe just self DMs?)
 
