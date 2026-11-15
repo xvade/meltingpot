@@ -100,9 +100,100 @@ function BinaryCommunicationObservation:addObservations(tileSet, world, observat
            local binaryCommunicationManagerComponent = binaryCommunicationManager:getComponent("BinaryCommunicationManager")
            if binaryCommunicationManager:getState() == binaryCommunicationManagerComponent:getLoudState() then
                return 1
-            else
+           else
                 return 0
-            end
+           end
+      end
+  }
+end
+
+
+
+local OpenChannelSender = class.Class(component.Component)
+
+function OpenChannelSender:__init__(kwargs)
+    kwargs = args.parse(kwargs, {
+        {'name', args.stringType},           -- Names should be formatted as OpenChannelSender<recipientIndex> by convention
+        {'recipientIndex', args.numberType}, -- The avatar index of the recipient
+        {'actionName', args.stringType}      -- The name of the action the sender will look for
+    })
+
+    OpenChannelSender.Base.__init__(self, kwargs)
+
+    self._config.recipientIndex = kwargs.recipientIndex
+    self._config.actionName = kwargs.actionName
+end
+
+
+function OpenChannelSender:postStart()
+    local simulation = self.gameObject.simulation
+    local avatarComp = self.gameObject:getComponent("Avatar")
+    self._config.recipient = simulation:getAvatarFromIndex(self._config.recipientIndex)
+    self._config.reciever = recipient:getComponent("OpenChannelReciever" .. avatarComp:getIndex()) -- Assumes uniqueness of the componenet
+end
+
+
+function OpenChannelSender:registerUpdaters()
+    local avatarComp = self.gameObject:getComponent("Avatar")
+    local updateFn = function()
+        local playerVolatileVariables = avatarComp:getVolatileData()
+        local actions = playerVolatileVariables.actions
+        self._config.reciever:recieveMessage(actions[self._config.actionName])
+    end
+    updaterRegistry:registerUpdater{
+        updateFn = updateFn,
+        priority = 10,
+    }
+end
+
+
+
+local OpenChannelReciever = class.Class(component.Component)
+
+function OpenChannelReciever:__init__(kwargs)
+    kwargs = args.parse(kwargs, {
+        {'name', args.stringType},           -- Names should be formatted as OpenChannelReciever<originIndex> by convention
+        {'originIndex', args.numberType},    -- The avatar index of the origin (opposite of the recipient)
+        {'type', args.stringType},           -- The type of the communication tensor, eg Int32
+        {'shape', args.dictType},            -- The shape of the communication tensor, eg {}
+        {'silentMessage'}                    -- What will be observed if no message is recieved. Should have type and shape as specified.
+    })
+
+    OpenChannelReciever.Base.__init__(self, kwargs)
+
+    self._config.originIndex = kwargs.originIndex
+    self._config.type = kwargs.type
+    self._config.shape = kwargs.shape
+    self._config.observationName = kwargs.observationName
+end
+
+
+function OpenChannelReciever:postStart()
+end
+
+
+function OpenChannelReciever:recieveMessage(message)
+    self._variables.lastMessage = message
+end
+
+
+function OpenChannelReciever:registerUpdaters()
+    updaterRegistry:registerUpdaters{
+        updateFn = function() self._variables.lastMessage = self._config.silentMessage end,
+        priority = 11,
+    }
+end
+
+
+function OpenChannelReciever:addObservations(tileSet, world, observations)
+  local playerIndex = self.gameObject:getComponent('Avatar'):getIndex()
+
+  observations[#observations + 1] = {
+      name = tostring(playerIndex) .. '.OPEN_COMMS' .. self._config.originIndex,
+      type = self._config.type,
+      shape = self._config.shape,
+      func = function(grid)
+          return self._variables.lastMessage
       end
   }
 end
@@ -117,6 +208,8 @@ end
 local allComponents = {
     BinaryCommunicationManager = BinaryCommunicationManager,
     BinaryCommunicationObservation = BinaryCommunicationObservation,
+    OpenChannelSender = OpenChannelSender,
+    OpenChannelReciever = OpenChannelReciever,
 }
 
 
