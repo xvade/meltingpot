@@ -158,6 +158,15 @@ def binary_communication(
   """
   return OBSERVATION['BINARY_COMMS']
 
+def open_communication(*shape: int, dtype, name: Optional[str] = None) -> dm_env.specs.Array:
+  """Returns the spec for an open comms observation.
+
+  Args:
+    *shape: the shape of the tensor.
+    type: the type of the tensor.
+    name: optional name for the spec.
+  """
+  return dm_env.specs.Array(shape=shape, dtype=dtype, name=name)
 
 def timestep(
     observation_spec: Mapping[str, dm_env.specs.Array]) -> dm_env.TimeStep:

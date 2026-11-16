@@ -153,11 +153,12 @@ local OpenChannelReciever = class.Class(component.Component)
 
 function OpenChannelReciever:__init__(kwargs)
     kwargs = args.parse(kwargs, {
-        {'name', args.stringType},           -- Names should be formatted as OpenChannelReciever<originIndex> by convention
-        {'originIndex', args.numberType},    -- The avatar index of the origin (opposite of the recipient)
-        {'type', args.stringType},           -- The type of the communication tensor, eg Int32
-        {'shape', args.dictType},            -- The shape of the communication tensor, eg {}
-        {'silentMessage'}                    -- What will be observed if no message is recieved. Should have type and shape as specified.
+        {'name', args.stringType},                    -- Names should be formatted as OpenChannelReciever<originIndex> by convention
+        {'originIndex', args.numberType},             -- The avatar index of the origin (opposite of the recipient)
+        {'type', args.stringType},                    -- The type of the communication tensor, eg Int32
+        {'shape', args.default({}), args.tableType},  -- The shape of the communication tensor, eg {}
+        {'observationName', args.stringType},         -- The name of the observation the reciever will look at
+        {'silentMessage'}                             -- What will be observed if no message is recieved. Should have type and shape as specified.
     })
 
     OpenChannelReciever.Base.__init__(self, kwargs)
@@ -179,7 +180,7 @@ end
 
 
 function OpenChannelReciever:registerUpdaters(updaterRegistry)
-    updaterRegistry:registerUpdaters{
+    updaterRegistry:registerUpdater{
         updateFn = function() self._variables.lastMessage = self._config.silentMessage end,
         priority = 11,
     }
@@ -200,7 +201,7 @@ function OpenChannelReciever:addObservations(tileSet, world, observations)
 end
 
 -- TODO: Implement proximity chat
--- TODO: Test DMs
+-- TODO: How will non-discrete actions work?
 -- TODO: Implement deliberate message passing
 -- TODO: Implement memmory (maybe just self DMs?)
 
