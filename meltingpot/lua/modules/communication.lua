@@ -167,6 +167,8 @@ function OpenChannelReciever:__init__(kwargs)
     self._config.type = kwargs.type
     self._config.shape = kwargs.shape
     self._config.observationName = kwargs.observationName
+    self._config.silentMessage = kwargs.silentMessage
+    self._variables.lastMessage = self._config.silentMessage
 end
 
 
